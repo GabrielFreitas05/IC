@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
 
+
+
+from telas import tela_usuario
+
 def salvar_teste(usuario_id, descricao, resultado, equipamentos, om_responsavel, data_inicio, data_fim):
     conexao = sqlite3.connect('usuarios.db')
     cursor = conexao.cursor()
@@ -33,8 +37,6 @@ def gerar_pdf(usuario_id, descricao, resultado, equipamentos, om_responsavel, da
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-    
-    pdf.cell(200, 10, txt=f"Usuario ID: {usuario_id}", ln=True)
     pdf.cell(200, 10, txt=f"Descrição: {descricao}", ln=True)
     pdf.cell(200, 10, txt=f"Resultado: {resultado}", ln=True)
     pdf.cell(200, 10, txt=f"Equipamentos: {equipamentos}", ln=True)
@@ -83,7 +85,7 @@ def exibir_grafico_gantt(usuario_id):
     plt.xticks(rotation=45)
     plt.xlabel('Datas')
     plt.ylabel('Tarefas')
-    plt.title('Gráfico de Gantt')
+    plt.title('Gráfico de Atividade do usuário: {nome}')
 
     def on_click(event):
         for bar in bars:
@@ -104,10 +106,9 @@ def limpar_campos():
     data_inicio_entry.set_date(datetime.today())
     data_fim_entry.set_date(datetime.today())
 
-def sair_tela():
-    testes_window.destroy()
-    from telas.tela_login import tela_login
-    tela_login()
+def voltar_tela_inicial(usuario_id):
+    testes_window.destroy()  
+    tela_usuario(usuario_id)  
 
 def tela_testes(usuario_id):
     global testes_window
@@ -153,7 +154,9 @@ def tela_testes(usuario_id):
 
     tk.Button(testes_window, text="Mostrar Gráfico de Gantt", command=lambda: exibir_grafico_gantt(usuario_id)).pack(pady=10)
 
-    tk.Button(testes_window, text="Sair", command=sair_tela).pack(pady=10)
+    tk.Button(testes_window, text="Voltar à Tela Inicial", command=lambda: voltar_tela_inicial(usuario_id)).pack(pady=10)
+
+    tk.Button(testes_window, text="Sair", command=testes_window.destroy).pack(pady=10)
 
     testes_window.mainloop()
 

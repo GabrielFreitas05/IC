@@ -27,6 +27,19 @@ def inicializar_banco():
     conexao.commit()
     conexao.close()
 
+
+
+def obter_historico_testes():
+    conn = sqlite3.connect('usuarios.db') 
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM testes")  
+    resultados = cursor.fetchall()
+    conn.close()
+    return resultados
+
+
+
+
 def atualizar_dados_existentes():
     conexao = sqlite3.connect('usuarios.db')
     cursor = conexao.cursor()

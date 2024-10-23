@@ -16,15 +16,15 @@ def registrar_usuario(email, password):
     cursor.execute('SELECT * FROM usuarios WHERE email = ?', (email,))
     
     if cursor.fetchone():
-        messagebox.showerror("Erro", "Usuário já existe. Escolha um e-mail diferente.")
+        messagebox.showerror("Erro", "Usuário já cadastrado.")
         conexao.close()
-        return
+        return False
 
     hashed_password = gerar_hash_senha(password)
     cursor.execute('INSERT INTO usuarios (email, senha) VALUES (?, ?)', (email, hashed_password))
     conexao.commit()
     conexao.close()
-    messagebox.showinfo("Sucesso", "Usuário registrado com sucesso!")
+    return True  
 
 def login_usuario(email, password):
     conexao = sqlite3.connect('usuarios.db')
