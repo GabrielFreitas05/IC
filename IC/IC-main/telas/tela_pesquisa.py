@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, filedialog
-from db.db import pesquisar_testes
+from db.db import inicializar_banco
 from pdf_generator.pdf_generator import gerar_pdf
 from datetime import datetime
 
@@ -11,15 +11,20 @@ def voltar_tela_inicial(usuario_id):
 
 def tela_pesquisa(usuario_id):
     def realizar_pesquisa():
-        material = entry_material.get().strip()
-        if not material:
-            messagebox.showerror("Erro", "Por favor, insira um material.")
+        tipo_pesquisa = tipo_pesquisa_var.get()
+        if tipo_pesquisa == "POP":
+            material = entry_material.get().strip()
+            if not material:
+                messagebox.showerror("Erro", "Por favor, insira um material.")
+                return
+            resultados = pesquisar_testes(material, tipo_pesquisa)
+        elif tipo_pesquisa == "PTA":
+            abrir_pop_up_mes_ano()
             return
-        resultados = pesquisar_testes(material)
         if resultados:
             exibir_resultados(resultados)
         else:
-            messagebox.showinfo("Nenhum Resultado", "Nenhum teste encontrado para o material informado.")
+            messagebox.showinfo("Nenhum Resultado", "Nenhum teste encontrado.")
 
     def exibir_resultados(resultados):
         for widget in frame_resultados.winfo_children():
@@ -53,10 +58,23 @@ def tela_pesquisa(usuario_id):
             descricao = resultado[3]
             data_inicio = resultado[7]
             data_fim = resultado[8]
-            
             if caminho != "": 
                 gerar_pdf(usuario_id, descricao, "", "", "", "", "", data_inicio, data_fim)
                 messagebox.showinfo("Sucesso", f"Relatório para {titulo} gerado com sucesso!")
+
+        def pesquisar_pta():
+            mes = mes_var.get()
+            ano = ano_var.get()
+            if mes and ano:
+                resultados = pesquisar_pta_por_mes_ano(mes, ano)
+                if resultados:
+                    exibir_resultados(resultados)
+                else:
+                    messagebox.showinfo("Nenhum Resultado", "Nenhum registro encontrado para o mês e ano informados.")
+            pop_up.destroy()
+
+        button_pesquisar_pta = tk.Button(pop_up, text="Pesquisar", command=pesquisar_pta, **button_style)
+        button_pesquisar_pta.pack(pady=10)
 
     pesquisa_window = tk.Tk()
     pesquisa_window.title("Pesquisa de Testes")
@@ -76,9 +94,23 @@ def tela_pesquisa(usuario_id):
         "cursor": "hand2"
     }
 
-    tk.Label(pesquisa_window, text="Pesquisar por Material:", fg="white", bg="#222", font=("Arial", 12)).pack(pady=5)
+    tk.Label(pesquisa_window, text="Escolha o tipo de pesquisa:", fg="white", bg="#222", font=("Arial", 12)).pack(pady=5)
+    
+    tipo_pesquisa_var = tk.StringVar()
+    tipo_pesquisa_var.set("Escolha")
+    
+    tipo_pesquisa_menu = tk.OptionMenu(pesquisa_window, tipo_pesquisa_var, "POP", "PTA", "Escolha")
+    tipo_pesquisa_menu.pack(pady=5)
+    
     entry_material = tk.Entry(pesquisa_window, bg="#333", fg="white", insertbackground="white", font=("Arial", 12), relief="flat")
-    entry_material.pack(pady=5, padx=20, ipadx=5, ipady=5, fill="x")
+
+    def atualizar_material():
+        if tipo_pesquisa_var.get() == "POP":
+            entry_material.pack(pady=5, padx=20, ipadx=5, ipady=5, fill="x")
+        else:
+            entry_material.pack_forget()
+
+    tipo_pesquisa_var.trace("w", lambda *args: atualizar_material())
 
     button_pesquisar = tk.Button(pesquisa_window, text="Pesquisar", command=realizar_pesquisa, **button_style)
     button_pesquisar.pack(pady=10)
