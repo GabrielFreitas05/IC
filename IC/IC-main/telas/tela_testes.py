@@ -1,12 +1,13 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
+from PIL import Image, ImageTk
 from tkcalendar import DateEntry
 from db.db import salvar_teste
 
 def tela_testes(usuario_id):
     testes_window = tk.Tk()
-    testes_window.title("Tela de Testes")
-    testes_window.geometry("900x700")
+    testes_window.title("POP's")
+    testes_window.geometry("1920x1080")
     testes_window.config(bg="#e0e0e0")
 
     main_frame = tk.Frame(testes_window, bg="#ffffff", bd=2, relief="ridge", padx=20, pady=20)
@@ -35,7 +36,6 @@ def tela_testes(usuario_id):
         else:
             canvas.yview_scroll(1, "units")
     canvas.bind_all("<MouseWheel>", rolar_com_mouse)
-
 
     tk.Label(frame, text="Cadastro de POP (Procedimento Operacional Padrão)", font=("Helvetica", 18, "bold"), bg="#ffffff").grid(row=0, column=0, columnspan=2, pady=10)
 
@@ -67,9 +67,36 @@ def tela_testes(usuario_id):
 
     entradas = {}
 
+    def selecionar_anexo():
+        arquivo = filedialog.askopenfilename(title="Selecionar arquivo", filetypes=[("Arquivos de Imagem", "*.jpg;*.jpeg;*.png;*.gif"), ("Arquivos de Vídeo", "*.mp4;*.avi;*.mov"), ("Todos os Arquivos", "*.*")])
+        if arquivo:
+            if arquivo.lower().endswith((".jpg", ".jpeg", ".png", ".gif")):
+                exibir_imagem(arquivo)
+            else:
+                messagebox.showinfo("Arquivo de Vídeo", f"Você selecionou um arquivo de vídeo: {arquivo}")
+            entradas["Anexos"] = arquivo  
+
+    def exibir_imagem(arquivo):
+        try:
+            img = Image.open(arquivo)
+            img.thumbnail((300, 300))
+            img = ImageTk.PhotoImage(img)
+            label_imagem.config(image=img)
+            label_imagem.image = img  
+        except Exception as e:
+            messagebox.showerror("Erro", f"Erro ao carregar a imagem: {str(e)}")
+
+    label_imagem = tk.Label(frame, text="Visualização do anexo", bg="#ffffff", font=("Helvetica", 12))
+    label_imagem.grid(row=14, column=0, columnspan=2, pady=10)
+
+    tk.Button(frame, text="Selecionar Anexo", font=("Helvetica", 12, "bold"), bg="#2196F3", fg="white", relief="flat", command=selecionar_anexo).grid(row=15, column=0, columnspan=2, pady=10)
+
     for i, campo in enumerate(campos):
         tk.Label(frame, text=campo + ":", font=("Helvetica", 12, "bold"), bg="#ffffff").grid(row=i + 1, column=0, sticky="w", pady=5)
-        if campo in ["Objetivo", "Aplicação e Escopo", "Procedimento Operacional", "Preparação", "Operação", "Finalização", "Seguranças e Riscos", "Anexos", "Histórico de Revisões"]:
+        if campo == "Data de Emissão":
+            entradas[campo] = DateEntry(frame, font=("Helvetica", 12), width=60, background='darkblue', foreground='white', borderwidth=2, date_pattern='dd/mm/yyyy')
+            entradas[campo].grid(row=i + 1, column=1, sticky="ew", padx=10, pady=5)
+        elif campo in ["Objetivo", "Aplicação e Escopo", "Procedimento Operacional", "Preparação", "Operação", "Finalização", "Seguranças e Riscos", "Anexos", "Histórico de Revisões"]:
             entradas[campo] = tk.Text(frame, font=("Helvetica", 12), height=4, width=60, wrap="word")
             entradas[campo].grid(row=i + 1, column=1, sticky="ew", padx=10, pady=5)
         else:
@@ -81,14 +108,20 @@ def tela_testes(usuario_id):
             campos_map[campo]: entradas[campo].get("1.0", tk.END).strip() if isinstance(entradas[campo], tk.Text) else entradas[campo].get().strip()
             for campo in campos
         }
-        
+
         if any(not v for v in valores.values()):
             messagebox.showerror("Erro", "Todos os campos devem ser preenchidos.")
             return
-        
+
         salvar_teste(usuario_id, **valores)
         messagebox.showinfo("Sucesso", "Procedimento salvo com sucesso.")
 
     tk.Button(frame, text="Salvar POP", font=("Helvetica", 12, "bold"), bg="#4CAF50", fg="white", relief="flat", command=salvar).grid(row=len(campos) + 1, column=0, columnspan=2, pady=20)
+
+    def voltar_para_tela_inicial():
+        from telas.tela_usuario import tela_usuario
+        tela_usuario(usuario_id)
+
+    tk.Button(frame, text="Voltar para Tela Inicial", font=("Helvetica", 12, "bold"), bg="#FF5733", fg="white", relief="flat", command=voltar_para_tela_inicial).grid(row=len(campos) + 2, column=0, columnspan=2, pady=10)
 
     testes_window.mainloop()
