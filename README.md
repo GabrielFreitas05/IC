@@ -20,6 +20,6 @@ Este projeto foi idealizado a partir da identificação de desafios na gestão d
 
 Para começar a usar ou contribuir com este projeto, siga as instruções abaixo:
 
-1. Baixe o arquivo .zip que está na página inicial do repositório
+1. Baixe o arquivo IC (pasta) que está na página inicial do repositório
 2. Instale todas as dependências no seu PC, são elas: Python; Matplotlib, TKcalendar, Tkinter, Bcrypt, fpdf.
 3. Verifique se os arquivos estão nas suas devidas pastas, para que não haja erro na hora de iniciar o sistema.
