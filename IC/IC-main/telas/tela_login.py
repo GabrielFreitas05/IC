@@ -1,42 +1,95 @@
-import tkinter as tk
-from tkinter import messagebox
-from db.auth import registrar_usuario, login_usuario
+import sqlite3
+import bcrypt
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
 from telas.tela_usuario import tela_usuario
+from telas.tela_registro import tela_registro
 
 def tela_login():
-    login_window = tk.Tk()
-    login_window.title("Login")
-    login_window.geometry("1920x1080")
+    login_window = QWidget()
+    login_window.setWindowTitle("Login")
+    login_window.setFixedSize(400, 400)
 
-    tk.Label(login_window, text="E-mail").pack(pady=5)
-    email_entry = tk.Entry(login_window)
-    email_entry.pack(pady=5)
+    bg_color = QColor("#1B3A5E")
+    fg_color = QColor("#FFCD00")
 
-    tk.Label(login_window, text="Senha").pack(pady=5)
-    password_entry = tk.Entry(login_window, show="*")
-    password_entry.pack(pady=5)
+    login_window.setStyleSheet(f"""
+        background-color: {bg_color.name()};
+        font-family: Arial, sans-serif;
+    """)
 
-    tk.Button(login_window, text="Login", command=lambda: login_and_open(email_entry.get(), password_entry.get(), login_window), bg="blue", fg="white").pack(pady=10)
-    tk.Button(login_window, text="Registrar", command=lambda: registrar(email_entry.get(), password_entry.get(), login_window), bg="green", fg="white").pack(pady=10)
+    layout = QVBoxLayout()
 
-    login_window.mainloop()
+    title_label = QLabel("Login")
+    title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    title_label.setStyleSheet(f"font-size: 24px; font-weight: bold; color: {fg_color.name()};")
+    layout.addWidget(title_label)
 
-def login_and_open(email, password, login_window):
-    usuario_id = login_usuario(email, password)
+    email_input = QLineEdit()
+    email_input.setPlaceholderText("E-mail")
+    email_input.setStyleSheet("padding: 10px; border-radius: 5px; border: 1px solid #ccc;")
+    layout.addWidget(email_input)
 
-    if usuario_id: 
-        messagebox.showinfo("Sucesso", "Login realizado com sucesso!")
-        login_window.destroy() 
-        tela_usuario(usuario_id) 
+    password_input = QLineEdit()
+    password_input.setPlaceholderText("Senha")
+    password_input.setEchoMode(QLineEdit.EchoMode.Password)
+    password_input.setStyleSheet("padding: 10px; border-radius: 5px; border: 1px solid #ccc;")
+    layout.addWidget(password_input)
 
-def registrar(email, password, login_window):
-    if email and password:
-        if registrar_usuario(email, password): 
-            messagebox.showinfo("Sucesso", "Registro realizado com sucesso!")
-            login_window.destroy()
-            usuario_id = login_usuario(email, password)
+    login_button = QPushButton("Entrar")
+    login_button.setStyleSheet(f"""
+        background-color: {fg_color.name()};
+        color: #1B3A5E;
+        font-size: 16px;
+        border-radius: 5px;
+        padding: 10px;
+    """)
+    layout.addWidget(login_button)
+
+    register_button = QPushButton("Registrar-se")
+    register_button.setStyleSheet(f"""
+        background-color: {fg_color.name()};
+        color: #1B3A5E;
+        font-size: 16px;
+        border-radius: 5px;
+        padding: 10px;
+    """)
+    layout.addWidget(register_button)
+
+    def autenticar_usuario():
+        email = email_input.text()
+        senha = password_input.text()
+
+        if not email or not senha:
+            QMessageBox.warning(login_window, "Erro", "Preencha todos os campos.")
+            return
+
+        conn = sqlite3.connect("usuarios.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT rowid, senha FROM usuarios WHERE email = ?", (email,))
+        resultado = cursor.fetchone()
+        conn.close()
+
+        if not resultado:
+            QMessageBox.warning(login_window, "Erro", "Usuário não encontrado.")
+            return
+
+        usuario_id, senha_hash = resultado
+
+        if bcrypt.checkpw(senha.encode(), senha_hash):
+            QMessageBox.information(login_window, "Sucesso", "Login realizado com sucesso!")
+            login_window.close()
             tela_usuario(usuario_id)
         else:
-            messagebox.showerror("Erro", "Esse e-mail já está registrado.")
-    else:
-        messagebox.showerror("Erro", "Por favor, preencha todos os campos.")
+            QMessageBox.warning(login_window, "Erro", "Senha incorreta.")
+
+    def abrir_tela_registro():
+        login_window.close()
+        tela_registro()
+
+    login_button.clicked.connect(autenticar_usuario)
+    register_button.clicked.connect(abrir_tela_registro)  
+
+    login_window.setLayout(layout)
+    login_window.show()

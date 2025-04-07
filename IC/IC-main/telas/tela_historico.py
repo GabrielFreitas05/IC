@@ -1,66 +1,44 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
-import sqlite3
-from fpdf import FPDF
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QListWidget, QPushButton
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
 
-def gerar_relatorio(titulo, autor, data_inicio, data_fim, usuario_id):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
+def tela_historico():
+    app = QApplication([])
 
-    pdf.cell(200, 10, txt="Relatório do Teste", ln=True, align='C')
-    pdf.cell(200, 10, txt=f"Título: {titulo}", ln=True)
-    pdf.cell(200, 10, txt=f"Autor: {autor}", ln=True)
-    pdf.cell(200, 10, txt=f"Data de Início: {data_inicio}", ln=True)
-    pdf.cell(200, 10, txt=f"Data de Fim: {data_fim}", ln=True)
-    pdf.cell(200, 10, txt=f"Usuário ID: {usuario_id}", ln=True)
+    historico_window = QWidget()
+    historico_window.setWindowTitle("Histórico")
+    historico_window.setFixedSize(400, 400)
 
-    pdf_file_name = f"Relatório_{titulo.replace(' ', '_')}.pdf"
-    pdf.output(pdf_file_name)
-    messagebox.showinfo("Relatório Gerado", f"Relatório gerado: {pdf_file_name}")
+    # Cores do tema
+    bg_color = QColor("#1B3A5E")
+    fg_color = QColor("#FFCD00")
 
+    historico_window.setStyleSheet(f"""
+        background-color: {bg_color.name()};
+        font-family: Arial, sans-serif;
+    """)
 
-def tela_historico(usuario_id):
-    historico_window = tk.Tk()
-    historico_window.title("Histórico de Testes")
-    historico_window.geometry("1920x1080")
+    layout = QVBoxLayout()
 
-    columns = ("titulo", "autor", "data_inicio", "data_fim")
-    tree = ttk.Treeview(historico_window, columns=columns, show='headings')
-    tree.heading("titulo", text="Título")
-    tree.heading("autor", text="Autor")
-    tree.heading("data_inicio", text="Data de Início")
-    tree.heading("data_fim", text="Data de Fim")
+    title_label = QLabel("Meu Histórico")
+    title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    title_label.setStyleSheet(f"font-size: 24px; font-weight: bold; color: {fg_color.name()};")
+    layout.addWidget(title_label)
 
-    tree.pack(fill=tk.BOTH, expand=True)
-    conexao = sqlite3.connect('usuarios.db')
-    cursor = conexao.cursor()
-    cursor.execute('SELECT titulo, autor, data_inicio, data_fim FROM testes WHERE usuario_id = ?', (usuario_id,))
-    testes = cursor.fetchall()
-    conexao.close()
+    results_list = QListWidget()
+    results_list.setStyleSheet("border-radius: 5px; border: 1px solid #ccc;")
+    layout.addWidget(results_list)
 
-    if not testes:
-        messagebox.showinfo("Histórico", "Nenhum teste encontrado.")
-    else:
-        for teste in testes:
-            tree.insert("", tk.END, values=teste)
+    back_button = QPushButton("Voltar")
+    back_button.setStyleSheet(f"""
+        background-color: {fg_color.name()};
+        color: #1B3A5E;
+        font-size: 16px;
+        border-radius: 5px;
+        padding: 10px;
+    """)
+    layout.addWidget(back_button)
 
-    def gerar_relatorio_selecionado():
-        selected_item = tree.selection()
-        if not selected_item:
-            messagebox.showwarning("Seleção Vazia", "Por favor, selecione um teste.")
-            return
-        titulo, autor, data_inicio, data_fim = tree.item(selected_item, 'values')
-        gerar_relatorio(titulo, autor, data_inicio, data_fim, usuario_id)
-
-    button_relatorio = tk.Button(historico_window, text="Gerar Relatório", command=gerar_relatorio_selecionado)
-    button_relatorio.pack(pady=10)
-
-    tk.Button(historico_window, text="Voltar", command=historico_window.destroy).pack(pady=10)
-
-    historico_window.mainloop()
-
-
-if __name__ == "__main__":
-    usuario_id = 1
-    tela_historico(usuario_id)
+    historico_window.setLayout(layout)
+    historico_window.show()
+    app.exec()
