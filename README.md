@@ -2,7 +2,7 @@ Projeto de Iniciação Científica (IC)
 
 **Nome do Projeto**: Criação de um sistema para a gestão do conhecimento e inovação 
 
-**Autor**: Gabriel Freitas  
+**Autor**: Gabriel Freitas de Campos 
 **Período**: 01/03/2025 - 01/09/2025  
 
 Descrição
