@@ -4,9 +4,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt, pyqtSignal
-import sqlite3
 from db.db import conectar
-from telas.tela_usuario import *
 
 class TelaProcessos(QWidget):
     deve_retornar = pyqtSignal()
@@ -174,37 +172,43 @@ class TelaProcessos(QWidget):
         layout.addWidget(self.lbl_confirmacao)
 
     def _carregar_dados_processo(self):
-        conn = conectar()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM formularios_processos WHERE id = ?", (self.processo_id,))
-        dados = cursor.fetchone()
-        conn.close()
+        try:
+            conn = conectar()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM formularios_processos WHERE id = ?", (self.processo_id,))
+            dados = cursor.fetchone()
+            conn.close()
 
-        if dados:
-            self.inp_nome_processo.setText(dados[2])
-            self.inp_responsavel.setText(dados[3])
-            self.inp_data_inicio.setText(dados[4])
-            self.inp_nome_fase.setText(dados[5])
-            self.inp_ordem_fase.setText(dados[6])
-            self.inp_objetivo_fase.setText(dados[7])
-            self.inp_nome_passo.setText(dados[8])
-            self.inp_ordem_passo.setText(dados[9])
-            self.inp_desc_passo.setText(dados[10])
-            self.inp_ferramentas.setText(dados[11])
-            self.inp_tempo_estimado.setText(dados[12])
-            self.inp_riscos.setText(dados[13])
-            self.inp_entradas.setText(dados[14])
-            self.inp_saidas.setText(dados[15])
-            self.inp_depende.setText(dados[16])
-            self.inp_depende_qual.setText(dados[17])
-            self.inp_decisao.setText(dados[18])
-            self.inp_fluxo_decisao.setText(dados[19])
-            self.inp_tempo_real.setText(dados[20])
-            self.inp_qualidade.setText(dados[21])
-            self.inp_licoes.setText(dados[22])
-            self.inp_melhorias.setText(dados[23])
-        else:
-            QMessageBox.warning(self, "Erro", "Processo não encontrado para edição.")
+            if dados:
+                self.inp_nome_processo.setText(dados[2])
+                self.inp_responsavel.setText(dados[3])
+                self.inp_data_inicio.setText(dados[4])
+                self.inp_nome_fase.setText(dados[5])
+                self.inp_ordem_fase.setText(dados[6])
+                self.inp_objetivo_fase.setText(dados[7])
+                self.inp_nome_passo.setText(dados[8])
+                self.inp_ordem_passo.setText(dados[9])
+                self.inp_desc_passo.setText(dados[10])
+                self.inp_ferramentas.setText(dados[11])
+                self.inp_tempo_estimado.setText(dados[12])
+                self.inp_riscos.setText(dados[13])
+                self.inp_entradas.setText(dados[14])
+                self.inp_saidas.setText(dados[15])
+                self.inp_depende.setText(dados[16])
+                self.inp_depende_qual.setText(dados[17])
+                self.inp_decisao.setText(dados[18])
+                self.inp_fluxo_decisao.setText(dados[19])
+                self.inp_tempo_real.setText(dados[20])
+                self.inp_qualidade.setText(dados[21])
+                self.inp_licoes.setText(dados[22])
+                self.inp_melhorias.setText(dados[23])
+            else:
+                QMessageBox.warning(self, "Aviso", "Processo não encontrado.")
+                self.deve_retornar.emit()
+                self.close()
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro ao carregar processo:\n{str(e)}")
+            self.deve_retornar.emit()
             self.close()
 
     def voltar(self):
@@ -290,12 +294,11 @@ class TelaProcessos(QWidget):
 
         resposta = QMessageBox.question(
             self,
-            "Ir para outra tela",
-            "Deseja voltar para a tela inicial?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            "Formulário Enviado",
+            "Formulário salvo com sucesso!\n\nDeseja continuar editando este processo?",
+            QMessageBox.StandardButton.No | QMessageBox.StandardButton.Yes
         )
 
-        if resposta == QMessageBox.StandardButton.Yes:
+        if resposta == QMessageBox.StandardButton.No:
+            self.deve_retornar.emit()
             self.close()
-            tela_usuario()
-

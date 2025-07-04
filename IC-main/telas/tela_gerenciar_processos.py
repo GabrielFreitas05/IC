@@ -14,7 +14,6 @@ class TelaGerenciarProcessos(QWidget):
         self.usuario_id = usuario_id
         self.setWindowTitle("Gerenciamento de Processos")
         self.setFixedSize(1000, 800)
-        
         self.setStyleSheet("""
             QWidget {
                 background-color: #1B3A5E;
@@ -61,7 +60,6 @@ class TelaGerenciarProcessos(QWidget):
                 color: #1B3A5E;
             }
         """)
-
         self._setup_ui()
         self._carregar_processos()
 
@@ -120,7 +118,6 @@ class TelaGerenciarProcessos(QWidget):
 
     def _carregar_processos(self):
         self.tabela_processos.setRowCount(0)
-        
         try:
             conn = conectar()
             cursor = conn.cursor()
@@ -130,9 +127,7 @@ class TelaGerenciarProcessos(QWidget):
                 WHERE usuario_id = ? 
                 ORDER BY data_inicio DESC
                 """, (self.usuario_id,))
-            
             processos = cursor.fetchall()
-            
             if processos:
                 for row_idx, (processo_id, nome, responsavel, data) in enumerate(processos):
                     self.tabela_processos.insertRow(row_idx)
@@ -140,7 +135,6 @@ class TelaGerenciarProcessos(QWidget):
                     self.tabela_processos.setItem(row_idx, 1, QTableWidgetItem(nome))
                     self.tabela_processos.setItem(row_idx, 2, QTableWidgetItem(responsavel))
                     self.tabela_processos.setItem(row_idx, 3, QTableWidgetItem(data))
-                    
                     for col in [0, 2, 3]:
                         item = self.tabela_processos.item(row_idx, col)
                         if item: 
@@ -157,29 +151,26 @@ class TelaGerenciarProcessos(QWidget):
         self.btn_excluir.setEnabled(selected)
 
     def _abrir_tela_criar_processo(self):
-        self.hide()
         self.tela_processos = TelaProcessos(self.usuario_id)
         self.tela_processos.deve_retornar.connect(self._voltar_da_edicao)
-        self.tela_processos.show()
         self.tela_processos.destroyed.connect(self._reexibir_e_recarregar)
+        self.tela_processos.show()
+        self.hide()
 
     def _editar_processo_selecionado(self):
         selected_items = self.tabela_processos.selectedItems()
         if not selected_items:
             QMessageBox.warning(self, "Aviso", "Selecione um processo para editar.")
             return
-
         try:
             selected_row = selected_items[0].row()
             item_id = self.tabela_processos.item(selected_row, 0)
             processo_id = int(item_id.text())
-            
-            self.hide()
             self.tela_processos = TelaProcessos(self.usuario_id, processo_id=processo_id)
             self.tela_processos.deve_retornar.connect(self._voltar_da_edicao)
-            self.tela_processos.show()
             self.tela_processos.destroyed.connect(self._reexibir_e_recarregar)
-            
+            self.tela_processos.show()
+            self.hide()
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Falha ao abrir processo:\n{str(e)}")
 
@@ -193,13 +184,11 @@ class TelaGerenciarProcessos(QWidget):
         if not selected_items:
             QMessageBox.warning(self, "Aviso", "Selecione um processo para excluir.")
             return
-
         try:
             selected_row = selected_items[0].row()
             item_id = self.tabela_processos.item(selected_row, 0)
             processo_id = int(item_id.text())
             nome_processo = self.tabela_processos.item(selected_row, 1).text()
-            
             confirm = QMessageBox.question(
                 self, 
                 "Confirmar Exclusão",
@@ -210,7 +199,6 @@ class TelaGerenciarProcessos(QWidget):
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
             )
-            
             if confirm == QMessageBox.StandardButton.Yes:
                 conn = conectar()
                 cursor = conn.cursor()
@@ -218,7 +206,6 @@ class TelaGerenciarProcessos(QWidget):
                 conn.commit()
                 QMessageBox.information(self, "Sucesso", f"Processo {nome_processo} excluído com sucesso!")
                 self._carregar_processos()
-                
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Falha ao excluir processo:\n{str(e)}")
         finally:
