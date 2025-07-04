@@ -94,35 +94,35 @@ def inicializar_banco():
 
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS formularios_processos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario_id INTEGER,
-        nome_processo TEXT,
-        responsavel TEXT,
-        data_inicio TEXT,
-        nome_fase TEXT,
-        ordem_fase TEXT,
-        objetivo_fase TEXT,
-        nome_passo TEXT,
-        ordem_passo TEXT,
-        descricao_passo TEXT,
-        ferramentas TEXT,
-        tempo_estimado TEXT,
-        riscos TEXT,
-        entradas TEXT,
-        saidas TEXT,
-        depende TEXT,
-        depende_qual TEXT,
-        decisao TEXT,
-        fluxo_decisao TEXT,
-        tempo_real TEXT,
-        qualidade TEXT,
-        licoes TEXT,
-        melhorias TEXT,
-        data_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER,
+            nome_processo TEXT,
+            responsavel TEXT,
+            data_inicio TEXT,
+            nome_fase TEXT,
+            ordem_fase TEXT,
+            objetivo_fase TEXT,
+            nome_passo TEXT,
+            ordem_passo TEXT,
+            descricao_passo TEXT,
+            ferramentas TEXT,
+            tempo_estimado TEXT,
+            riscos TEXT,
+            entradas TEXT,
+            saidas TEXT,
+            depende TEXT,
+            depende_qual TEXT,
+            decisao TEXT,
+            fluxo_decisao TEXT,
+            tempo_real TEXT,
+            qualidade TEXT,
+            licoes TEXT,
+            melhorias TEXT,
+            status TEXT DEFAULT 'rascunho',
+            data_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
         )
         ''')
-
 
         conexao.commit()
     except sqlite3.Error as e:
@@ -133,31 +133,22 @@ def inicializar_banco():
 def gerar_id_usuario(nome_usuario):
     partes_nome = nome_usuario.split()
     iniciais = "".join([parte[0].upper() for parte in partes_nome[:2]])
-    
     conexao = conectar()
     cursor = conexao.cursor()
-
     cursor.execute("SELECT COUNT(*) FROM usuarios")
     contador = cursor.fetchone()[0] + 1
-    
-    id_usuario = f"{iniciais}-{contador:03d}"
-    
     conexao.close()
-    
-    return id_usuario
+    return f"{iniciais}-{contador:03d}"
 
 def salvar_usuario(email, nome, senha):
     id_personalizada = gerar_id_usuario(nome)
-    
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute('''
         INSERT INTO usuarios (email, nome, senha, id_personalizada)
         VALUES (?, ?, ?, ?)
         ''', (email, nome, senha, id_personalizada))
-
         conexao.commit()
     except sqlite3.Error as e:
         print(f"Erro ao salvar usuário: {e}")
@@ -167,13 +158,11 @@ def salvar_usuario(email, nome, senha):
 def salvar_pta_db(usuario_id, data, descricao):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute('''
         INSERT INTO pta (usuario_id, data, descricao)
         VALUES (?, ?, ?)
         ''', (usuario_id, data, descricao))
-
         conexao.commit()
         return True
     except sqlite3.Error as e:
@@ -185,7 +174,6 @@ def salvar_pta_db(usuario_id, data, descricao):
 def listar_ptas_por_usuario_db(usuario_id):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("SELECT * FROM pta WHERE usuario_id = ?", (usuario_id,))
         return cursor.fetchall()
@@ -198,12 +186,10 @@ def listar_ptas_por_usuario_db(usuario_id):
 def atualizar_pta_db(pta_id, data, descricao):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute('''
         UPDATE pta SET data = ?, descricao = ? WHERE id = ?
         ''', (data, descricao, pta_id))
-
         conexao.commit()
         return True
     except sqlite3.Error as e:
@@ -215,7 +201,6 @@ def atualizar_pta_db(pta_id, data, descricao):
 def listar_pta():
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("SELECT * FROM pta")
         return cursor.fetchall()
@@ -228,7 +213,6 @@ def listar_pta():
 def excluir_pta_db(pta_id):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("DELETE FROM pta WHERE id = ?", (pta_id,))
         conexao.commit()
@@ -243,10 +227,8 @@ def gerar_pdf(usuario_id, titulo_procedimento, codigo_documento, versao, data_em
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-
     pdf.cell(200, 10, txt="Relatório de Teste", ln=True, align='C')
     pdf.ln(10)
-
     dados = {
         "Título do Procedimento": titulo_procedimento,
         "Código do Documento": codigo_documento,
@@ -268,10 +250,8 @@ def gerar_pdf(usuario_id, titulo_procedimento, codigo_documento, versao, data_em
         "Histórico de Revisões": historico_revisoes,
         "Responsável": responsavel
     }
-
     for campo, valor in dados.items():
         pdf.multi_cell(0, 10, txt=f"{campo}: {valor}", align='L')
-
     nome_arquivo = f"{codigo_documento}_{versao}.pdf".replace(" ", "_")
     pdf.output(nome_arquivo)
     print(f"PDF gerado: {nome_arquivo}")
@@ -279,7 +259,6 @@ def gerar_pdf(usuario_id, titulo_procedimento, codigo_documento, versao, data_em
 def pesquisar_testes(titulo_procedimento):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("SELECT * FROM testes WHERE titulo_procedimento LIKE ?", ('%' + titulo_procedimento + '%',))
         return cursor.fetchall()
@@ -292,7 +271,6 @@ def pesquisar_testes(titulo_procedimento):
 def pesquisar_pta_por_mes_ano(mes, ano):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("SELECT * FROM pta WHERE strftime('%m', data) = ? AND strftime('%Y', data) = ?", (mes, ano))
         return cursor.fetchall()
@@ -305,7 +283,6 @@ def pesquisar_pta_por_mes_ano(mes, ano):
 def listar_testes():
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("SELECT * FROM testes")
         return cursor.fetchall()
@@ -318,7 +295,6 @@ def listar_testes():
 def buscar_nome_usuario(usuario_id):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("SELECT nome FROM usuarios WHERE id = ?", (usuario_id,))
         resultado = cursor.fetchone()
@@ -332,7 +308,6 @@ def buscar_nome_usuario(usuario_id):
 def salvar_teste(usuario_id, **valores):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("""
             INSERT INTO testes (
@@ -388,7 +363,6 @@ def salvar_teste(usuario_id, **valores):
 def listar_usuarios():
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("SELECT * FROM usuarios")
         return cursor.fetchall()
@@ -401,7 +375,6 @@ def listar_usuarios():
 def excluir_usuario(usuario_id):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
         conexao.commit()
@@ -413,7 +386,6 @@ def excluir_usuario(usuario_id):
 def excluir_teste(teste_id):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("DELETE FROM testes WHERE id = ?", (teste_id,))
         conexao.commit()
@@ -425,7 +397,6 @@ def excluir_teste(teste_id):
 def listar_historico_revisoes(teste_id):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("SELECT historico_revisoes FROM testes WHERE id = ?", (teste_id,))
         resultado = cursor.fetchone()
@@ -439,7 +410,6 @@ def listar_historico_revisoes(teste_id):
 def buscar_testes_por_responsavel(responsavel):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("SELECT * FROM testes WHERE responsavel LIKE ?", ('%' + responsavel + '%',))
         return cursor.fetchall()
@@ -452,7 +422,6 @@ def buscar_testes_por_responsavel(responsavel):
 def buscar_id_usuario(id_personalizada):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("SELECT id FROM usuarios WHERE id_personalizada = ?", (id_personalizada,))
         resultado = cursor.fetchone()
@@ -486,11 +455,11 @@ def salvar_formulario_processo(
     tempo_real,
     qualidade,
     licoes,
-    melhorias
+    melhorias,
+    status='rascunho'
 ):
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute("""
             INSERT INTO formularios_processos (
@@ -516,8 +485,9 @@ def salvar_formulario_processo(
                 tempo_real,
                 qualidade,
                 licoes,
-                melhorias
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                melhorias,
+                status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             usuario_id,
             nome_processo,
@@ -541,7 +511,8 @@ def salvar_formulario_processo(
             tempo_real,
             qualidade,
             licoes,
-            melhorias
+            melhorias,
+            status
         ))
         conexao.commit()
         return True
@@ -550,4 +521,3 @@ def salvar_formulario_processo(
         return False
     finally:
         conexao.close()
-

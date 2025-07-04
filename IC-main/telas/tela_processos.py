@@ -1,9 +1,8 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QTextEdit, QPushButton, 
+    QWidget, QVBoxLayout, QLabel, QTextEdit, QPushButton,
     QStackedWidget, QHBoxLayout, QMessageBox
 )
-from PyQt6.QtGui import QFont
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from db.db import conectar
 
 class TelaProcessos(QWidget):
@@ -15,7 +14,6 @@ class TelaProcessos(QWidget):
         self.processo_id = processo_id
         self.setWindowTitle("Formulário de Processo")
         self.setFixedSize(800, 600)
-
         self.setStyleSheet("""
             QWidget {
                 background-color: #1B3A5E;
@@ -74,9 +72,12 @@ class TelaProcessos(QWidget):
         nav = QHBoxLayout()
         self.btn_voltar = QPushButton("← Voltar")
         self.btn_avancar = QPushButton("Avançar →")
+        self.btn_salvar_rascunho = QPushButton("Salvar Rascunho")
         self.btn_voltar.clicked.connect(self.voltar)
         self.btn_avancar.clicked.connect(self.avancar)
+        self.btn_salvar_rascunho.clicked.connect(self.salvar_rascunho_com_msg)
         nav.addWidget(self.btn_voltar)
+        nav.addWidget(self.btn_salvar_rascunho)
         nav.addWidget(self.btn_avancar)
 
         layout.addLayout(nav)
@@ -172,43 +173,36 @@ class TelaProcessos(QWidget):
         layout.addWidget(self.lbl_confirmacao)
 
     def _carregar_dados_processo(self):
-        try:
-            conn = conectar()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM formularios_processos WHERE id = ?", (self.processo_id,))
-            dados = cursor.fetchone()
-            conn.close()
-
-            if dados:
-                self.inp_nome_processo.setText(dados[2])
-                self.inp_responsavel.setText(dados[3])
-                self.inp_data_inicio.setText(dados[4])
-                self.inp_nome_fase.setText(dados[5])
-                self.inp_ordem_fase.setText(dados[6])
-                self.inp_objetivo_fase.setText(dados[7])
-                self.inp_nome_passo.setText(dados[8])
-                self.inp_ordem_passo.setText(dados[9])
-                self.inp_desc_passo.setText(dados[10])
-                self.inp_ferramentas.setText(dados[11])
-                self.inp_tempo_estimado.setText(dados[12])
-                self.inp_riscos.setText(dados[13])
-                self.inp_entradas.setText(dados[14])
-                self.inp_saidas.setText(dados[15])
-                self.inp_depende.setText(dados[16])
-                self.inp_depende_qual.setText(dados[17])
-                self.inp_decisao.setText(dados[18])
-                self.inp_fluxo_decisao.setText(dados[19])
-                self.inp_tempo_real.setText(dados[20])
-                self.inp_qualidade.setText(dados[21])
-                self.inp_licoes.setText(dados[22])
-                self.inp_melhorias.setText(dados[23])
-            else:
-                QMessageBox.warning(self, "Aviso", "Processo não encontrado.")
-                self.deve_retornar.emit()
-                self.close()
-        except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao carregar processo:\n{str(e)}")
-            self.deve_retornar.emit()
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM formularios_processos WHERE id = ?", (self.processo_id,))
+        dados = cursor.fetchone()
+        conn.close()
+        if dados:
+            self.inp_nome_processo.setText(dados[2])
+            self.inp_responsavel.setText(dados[3])
+            self.inp_data_inicio.setText(dados[4])
+            self.inp_nome_fase.setText(dados[5])
+            self.inp_ordem_fase.setText(dados[6])
+            self.inp_objetivo_fase.setText(dados[7])
+            self.inp_nome_passo.setText(dados[8])
+            self.inp_ordem_passo.setText(dados[9])
+            self.inp_desc_passo.setText(dados[10])
+            self.inp_ferramentas.setText(dados[11])
+            self.inp_tempo_estimado.setText(dados[12])
+            self.inp_riscos.setText(dados[13])
+            self.inp_entradas.setText(dados[14])
+            self.inp_saidas.setText(dados[15])
+            self.inp_depende.setText(dados[16])
+            self.inp_depende_qual.setText(dados[17])
+            self.inp_decisao.setText(dados[18])
+            self.inp_fluxo_decisao.setText(dados[19])
+            self.inp_tempo_real.setText(dados[20])
+            self.inp_qualidade.setText(dados[21])
+            self.inp_licoes.setText(dados[22])
+            self.inp_melhorias.setText(dados[23])
+        else:
+            QMessageBox.warning(self, "Erro", "Processo não encontrado para edição.")
             self.close()
 
     def voltar(self):
@@ -219,13 +213,14 @@ class TelaProcessos(QWidget):
             self.deve_retornar.emit()
 
     def avancar(self):
+        self.salvar_rascunho()  # salvamento automático sem mostrar mensagem
         index = self.stack.currentIndex()
         if index < self.stack.count() - 1:
             self.stack.setCurrentIndex(index + 1)
         else:
             self.salvar_dados()
 
-    def salvar_dados(self):
+    def salvar_rascunho(self):
         dados = (
             self.usuario_id,
             self.inp_nome_processo.toPlainText(),
@@ -251,54 +246,47 @@ class TelaProcessos(QWidget):
             self.inp_licoes.toPlainText(),
             self.inp_melhorias.toPlainText()
         )
-
         conn = conectar()
         cursor = conn.cursor()
-
         if self.processo_id:
-            try:
-                cursor.execute("""
-                    UPDATE formularios_processos SET
-                        usuario_id = ?, nome_processo = ?, responsavel = ?, data_inicio = ?,
-                        nome_fase = ?, ordem_fase = ?, objetivo_fase = ?,
-                        nome_passo = ?, ordem_passo = ?, descricao_passo = ?, ferramentas = ?,
-                        tempo_estimado = ?, riscos = ?, entradas = ?, saidas = ?,
-                        depende = ?, depende_qual = ?, decisao = ?, fluxo_decisao = ?,
-                        tempo_real = ?, qualidade = ?, licoes = ?, melhorias = ?
-                    WHERE id = ?
-                """, dados + (self.processo_id,))
-                conn.commit()
-                QMessageBox.information(self, "Salvo", "Processo atualizado com sucesso!")
-            except Exception as e:
-                QMessageBox.critical(self, "Erro", f"Erro ao atualizar processo: {e}")
-            finally:
-                conn.close()
+            cursor.execute("""
+                UPDATE formularios_processos SET
+                    usuario_id = ?, nome_processo = ?, responsavel = ?, data_inicio = ?,
+                    nome_fase = ?, ordem_fase = ?, objetivo_fase = ?,
+                    nome_passo = ?, ordem_passo = ?, descricao_passo = ?, ferramentas = ?,
+                    tempo_estimado = ?, riscos = ?, entradas = ?, saidas = ?,
+                    depende = ?, depende_qual = ?, decisao = ?, fluxo_decisao = ?,
+                    tempo_real = ?, qualidade = ?, licoes = ?, melhorias = ?
+                WHERE id = ?
+            """, dados + (self.processo_id,))
         else:
-            try:
-                cursor.execute("""
-                    INSERT INTO formularios_processos (
-                        usuario_id, nome_processo, responsavel, data_inicio,
-                        nome_fase, ordem_fase, objetivo_fase,
-                        nome_passo, ordem_passo, descricao_passo, ferramentas,
-                        tempo_estimado, riscos, entradas, saidas,
-                        depende, depende_qual, decisao, fluxo_decisao,
-                        tempo_real, qualidade, licoes, melhorias
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, dados)
-                conn.commit()
-                QMessageBox.information(self, "Salvo", "Formulário salvo com sucesso!")
-            except Exception as e:
-                QMessageBox.critical(self, "Erro", f"Erro ao salvar formulário: {e}")
-            finally:
-                conn.close()
+            cursor.execute("""
+                INSERT INTO formularios_processos (
+                    usuario_id, nome_processo, responsavel, data_inicio,
+                    nome_fase, ordem_fase, objetivo_fase,
+                    nome_passo, ordem_passo, descricao_passo, ferramentas,
+                    tempo_estimado, riscos, entradas, saidas,
+                    depende, depende_qual, decisao, fluxo_decisao,
+                    tempo_real, qualidade, licoes, melhorias
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, dados)
+            self.processo_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
 
+    def salvar_rascunho_com_msg(self):
+        self.salvar_rascunho()
+        QMessageBox.information(self, "Rascunho salvo", "Rascunho salvo com sucesso.")
+
+    def salvar_dados(self):
+        self.salvar_rascunho()
         resposta = QMessageBox.question(
             self,
-            "Formulário Enviado",
-            "Formulário salvo com sucesso!\n\nDeseja continuar editando este processo?",
-            QMessageBox.StandardButton.No | QMessageBox.StandardButton.Yes
+            "Ir para outra tela",
+            "Deseja voltar para a tela inicial?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
-
-        if resposta == QMessageBox.StandardButton.No:
-            self.deve_retornar.emit()
+        if resposta == QMessageBox.StandardButton.Yes:
+            from telas.tela_usuario import tela_usuario
             self.close()
+            tela_usuario(self.usuario_id)
