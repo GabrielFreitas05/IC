@@ -248,46 +248,43 @@ class TelaGerenciarProcessos(QWidget):
             conn.close()
 
             if processo_detalhes:
-                # Mapear colunas para nomes legíveis (removendo IDs e Status)
                 column_names = [
-                    "",                     # 0 - ID (removido)
-                    "",                     # 1 - ID do Usuário (removido)
-                    "Nome do Processo",     # 2
-                    "Responsável",          # 3
-                    "Data de Início",       # 4
-                    "Nome da Fase",         # 5
-                    "Ordem da Fase",        # 6
-                    "Objetivo da Fase",     # 7
-                    "Nome do Passo",        # 8
-                    "Ordem do Passo",       # 9
-                    "Descrição do Passo",   # 10
-                    "Ferramentas",          # 11
-                    "Tempo Estimado",       # 12
-                    "Riscos",               # 13
-                    "Entradas",             # 14
-                    "Saídas",               # 15
-                    "Depende",              # 16
-                    "Depende Qual",         # 17
-                    "Decisão",              # 18
-                    "Fluxo de Decisão",     # 19
-                    "Tempo Real",           # 20
-                    "Qualidade",            # 21
-                    "Lições Aprendidas",    # 22
-                    "Melhorias Sugeridas",  # 23
-                    "",                     # 24 - Status (removido)
-                    "Data de Registro"      # 25
+                    "",
+                    "",
+                    "Nome do Processo",
+                    "Responsável",
+                    "Data de Início",
+                    "Nome da Fase",
+                    "Ordem da Fase",
+                    "Objetivo da Fase",
+                    "Nome do Passo",
+                    "Ordem do Passo",
+                    "Descrição do Passo",
+                    "Ferramentas",
+                    "Tempo Estimado",
+                    "Riscos",
+                    "Entradas",
+                    "Saídas",
+                    "Depende",
+                    "Depende Qual",
+                    "Decisão",
+                    "Fluxo de Decisão",
+                    "Tempo Real",
+                    "Qualidade",
+                    "Lições Aprendidas",
+                    "Melhorias Sugeridas",
+                    "",
+                    "Data de Registro"
                 ]
 
                 pdf = FPDF()
                 pdf.add_page()
                 pdf.set_font("Arial", 'B', size=16)
                 
-                # Cabeçalho do relatório
                 pdf.cell(0, 10, txt="Relatório de Processo", ln=True, align='C')
                 pdf.set_font("Arial", size=12)
                 pdf.ln(10)
                 
-                # Informações básicas do processo
                 pdf.set_font("Arial", 'B', size=14)
                 pdf.cell(0, 10, txt=f"Processo: {processo_detalhes[2]}", ln=True)
                 pdf.set_font("Arial", size=12)
@@ -296,25 +293,22 @@ class TelaGerenciarProcessos(QWidget):
                 pdf.cell(0, 10, txt=f"Data de Início: {processo_detalhes[4]}", ln=True)
                 pdf.ln(10)
 
-                # Detalhes do processo
                 pdf.set_font("Arial", 'B', size=12)
                 pdf.cell(0, 10, txt="Detalhes do Processo:", ln=True)
                 pdf.set_font("Arial", size=12)
                 pdf.ln(5)
 
-                # Pular IDs (0,1) e Status (24)
                 for i, (detail, name) in enumerate(zip(processo_detalhes, column_names)):
-                    if i in [0, 1, 24]:  # Pular ID do processo, ID do usuário e Status
+                    if i in [0, 1, 24]:
                         continue
                         
-                    if name and detail:  # Só mostrar campos com nome definido e valor não nulo
+                    if name and detail:
                         pdf.set_font("Arial", 'B', size=12)
                         pdf.cell(40, 10, txt=f"{name}: ", ln=0)
                         pdf.set_font("Arial", size=12)
                         pdf.multi_cell(0, 10, txt=str(detail))
                         pdf.ln(2)
                 
-                # Salvar o PDF
                 file_name = f"Relatorio_Processo_{processo_detalhes[2].replace(' ', '_')}.pdf"
                 file_path, _ = QFileDialog.getSaveFileName(self, "Salvar Relatório", file_name, "PDF Files (*.pdf)")
 
