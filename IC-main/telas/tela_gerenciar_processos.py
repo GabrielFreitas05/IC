@@ -1,12 +1,13 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QTableWidget, QTableWidgetItem, QMessageBox, QHeaderView, 
-    QAbstractItemView
+    QAbstractItemView, QFileDialog
 )
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 from db.db import conectar
 from telas.tela_processos import TelaProcessos
+from fpdf import FPDF
 
 class TelaGerenciarProcessos(QWidget):
     def __init__(self, usuario_id):
@@ -93,6 +94,11 @@ class TelaGerenciarProcessos(QWidget):
         self.btn_atualizar.clicked.connect(self._atualizar_processos)
         button_layout.addWidget(self.btn_atualizar)
 
+        self.btn_gerar_relatorio = QPushButton("📄 Gerar Relatório")
+        self.btn_gerar_relatorio.clicked.connect(self._gerar_relatorio_processo)
+        self.btn_gerar_relatorio.setEnabled(False)
+        button_layout.addWidget(self.btn_gerar_relatorio)
+
         main_layout.addLayout(button_layout)
 
         self.tabela_processos = QTableWidget()
@@ -149,6 +155,7 @@ class TelaGerenciarProcessos(QWidget):
         selected = len(self.tabela_processos.selectedItems()) > 0
         self.btn_editar.setEnabled(selected)
         self.btn_excluir.setEnabled(selected)
+        self.btn_gerar_relatorio.setEnabled(selected)
 
     def _abrir_tela_criar_processo(self):
         self.tela_processos = TelaProcessos(self.usuario_id)
@@ -223,3 +230,102 @@ class TelaGerenciarProcessos(QWidget):
         from telas.tela_usuario import tela_usuario
         self.close()
         tela_usuario(self.usuario_id)
+
+    def _gerar_relatorio_processo(self):
+        selected_items = self.tabela_processos.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Aviso", "Selecione um processo para gerar o relatório.")
+            return
+
+        try:
+            selected_row = selected_items[0].row()
+            processo_id = int(self.tabela_processos.item(selected_row, 0).text())
+
+            conn = conectar()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM formularios_processos WHERE id = ?", (processo_id,))
+            processo_detalhes = cursor.fetchone()
+            conn.close()
+
+            if processo_detalhes:
+                # Mapear colunas para nomes legíveis (removendo IDs e Status)
+                column_names = [
+                    "",                     # 0 - ID (removido)
+                    "",                     # 1 - ID do Usuário (removido)
+                    "Nome do Processo",     # 2
+                    "Responsável",          # 3
+                    "Data de Início",       # 4
+                    "Nome da Fase",         # 5
+                    "Ordem da Fase",        # 6
+                    "Objetivo da Fase",     # 7
+                    "Nome do Passo",        # 8
+                    "Ordem do Passo",       # 9
+                    "Descrição do Passo",   # 10
+                    "Ferramentas",          # 11
+                    "Tempo Estimado",       # 12
+                    "Riscos",               # 13
+                    "Entradas",             # 14
+                    "Saídas",               # 15
+                    "Depende",              # 16
+                    "Depende Qual",         # 17
+                    "Decisão",              # 18
+                    "Fluxo de Decisão",     # 19
+                    "Tempo Real",           # 20
+                    "Qualidade",            # 21
+                    "Lições Aprendidas",    # 22
+                    "Melhorias Sugeridas",  # 23
+                    "",                     # 24 - Status (removido)
+                    "Data de Registro"      # 25
+                ]
+
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", 'B', size=16)
+                
+                # Cabeçalho do relatório
+                pdf.cell(0, 10, txt="Relatório de Processo", ln=True, align='C')
+                pdf.set_font("Arial", size=12)
+                pdf.ln(10)
+                
+                # Informações básicas do processo
+                pdf.set_font("Arial", 'B', size=14)
+                pdf.cell(0, 10, txt=f"Processo: {processo_detalhes[2]}", ln=True)
+                pdf.set_font("Arial", size=12)
+                
+                pdf.cell(0, 10, txt=f"Responsável: {processo_detalhes[3]}", ln=True)
+                pdf.cell(0, 10, txt=f"Data de Início: {processo_detalhes[4]}", ln=True)
+                pdf.ln(10)
+
+                # Detalhes do processo
+                pdf.set_font("Arial", 'B', size=12)
+                pdf.cell(0, 10, txt="Detalhes do Processo:", ln=True)
+                pdf.set_font("Arial", size=12)
+                pdf.ln(5)
+
+                # Pular IDs (0,1) e Status (24)
+                for i, (detail, name) in enumerate(zip(processo_detalhes, column_names)):
+                    if i in [0, 1, 24]:  # Pular ID do processo, ID do usuário e Status
+                        continue
+                        
+                    if name and detail:  # Só mostrar campos com nome definido e valor não nulo
+                        pdf.set_font("Arial", 'B', size=12)
+                        pdf.cell(40, 10, txt=f"{name}: ", ln=0)
+                        pdf.set_font("Arial", size=12)
+                        pdf.multi_cell(0, 10, txt=str(detail))
+                        pdf.ln(2)
+                
+                # Salvar o PDF
+                file_name = f"Relatorio_Processo_{processo_detalhes[2].replace(' ', '_')}.pdf"
+                file_path, _ = QFileDialog.getSaveFileName(self, "Salvar Relatório", file_name, "PDF Files (*.pdf)")
+
+                if file_path:
+                    pdf.output(file_path)
+                    QMessageBox.information(self, "Sucesso", f"Relatório gerado com sucesso em:\n{file_path}")
+                else:
+                    QMessageBox.information(self, "Cancelado", "Geração do relatório cancelada.")
+
+            else:
+                QMessageBox.warning(self, "Erro", "Detalhes do processo não encontrados para gerar o relatório.")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Falha ao gerar relatório:\n{str(e)}")
