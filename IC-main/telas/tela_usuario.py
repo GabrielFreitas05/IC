@@ -1,15 +1,12 @@
-
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSpacerItem,
-    QSizePolicy, QFrame
+    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFrame,
+    QSizePolicy, QSpacerItem, QMessageBox
 )
+from PyQt6.QtGui import QPixmap, QIcon, QFont
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap, QColor, QIcon
 from telas.tela_testes import tela_testes
-from telas.tela_pesquisa import TelaPesquisa
-from telas.tela_historico import tela_historico
 from telas.tela_gerenciar_processos import TelaGerenciarProcessos
-from db.db import buscar_nome_usuario, buscar_id_usuario
+from db.db import buscar_nome_usuario
 import os
 
 class HoverButton(QPushButton):
@@ -20,110 +17,76 @@ class HoverButton(QPushButton):
         if icon_path and os.path.exists(icon_path):
             self.setIcon(QIcon(icon_path))
             self.setIconSize(QPixmap(icon_path).rect().size())
-        self.update_style()
-
-    def update_style(self):
-        if self.enabled:
-            self.setStyleSheet("""
-                QPushButton {
-                    background-color: #FFCD00;
-                    color: #1B3A5E;
-                    font-size: 16px;
-                    font-weight: bold;
-                    border-radius: 15px;
-                    padding: 15px;
-                    border: none;
-                }
-                QPushButton:hover {
-                    background-color: #e5b800;
-                }
-            """)
-        else:
-            self.setStyleSheet("""
-                QPushButton {
-                    background-color: #cccccc;
-                    color: #666666;
-                    font-size: 16px;
-                    font-weight: bold;
-                    border-radius: 15px;
-                    padding: 15px;
-                }
-            """)
-            self.setEnabled(False)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #FFCD00;
+                font-size: 15px;
+                text-align: left;
+                padding: 10px 15px;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background-color: #2a2e39;
+            }
+        """)
 
     def mousePressEvent(self, event):
         if self.enabled and self.function:
             self.function()
 
-def tela_usuario(usuario_id):
-    usuario_window = QWidget()
-    usuario_window.setWindowTitle("Tela Inicial")
-    usuario_window.setFixedSize(700, 550)
+class SideBar(QWidget):
+    def __init__(self, usuario_window, usuario_id):
+        super().__init__()
+        self.usuario_window = usuario_window
+        self.usuario_id = usuario_id
+        layout = QVBoxLayout()
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(15)
 
-    bg_color = "#1B3A5E"
-    fg_color = "#FFCD00"
-
-    usuario_window.setStyleSheet(f"background-color: {bg_color};")
-
-    layout = QVBoxLayout()
-    layout.setSpacing(20)
-
-    nome_usuario = buscar_nome_usuario(usuario_id)
-    iniciais = gerar_iniciais(nome_usuario)
-    usuario_id_formatado = gerar_id_formatado(iniciais, usuario_id)
-
-    title = QLabel(f"Bem-vindo, {nome_usuario}")
-    title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    title.setStyleSheet("font-size: 26px; color: white; font-weight: bold;")
-    layout.addWidget(title)
-
-    subtitle = QLabel("Sistema de Gestão de Conhecimento e Inovação")
-    subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    subtitle.setStyleSheet(f"font-size: 16px; color: {fg_color};")
-    layout.addWidget(subtitle)
-
-    logo_path = "assets/logo.png"
-    if os.path.exists(logo_path):
-        logo = QLabel()
-        pixmap = QPixmap(logo_path).scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio)
-        logo.setPixmap(pixmap)
+        logo = QLabel("SGCI")
         logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo.setStyleSheet("font-size: 20px; color: white; font-weight: bold;")
         layout.addWidget(logo)
 
-    line = QFrame()
-    line.setFrameShape(QFrame.Shape.HLine)
-    line.setFrameShadow(QFrame.Shadow.Sunken)
-    line.setStyleSheet("color: white;")
-    layout.addWidget(line)
+        def abrir_tela_gerenciar_processos(uid):
+            tela = TelaGerenciarProcessos(uid)
+            tela.show()
+            return tela
 
-    button_layout = QHBoxLayout()
-    button_layout.setSpacing(20)
+        def create_button(text, icon=None, function=None):
+            def action():
+                self.usuario_window.hide()
+                nova_tela = function(self.usuario_id)
+                self.usuario_window.nova_tela = nova_tela
+            return HoverButton(text, icon_path=icon, function=action)
 
-    def abrir_tela_gerenciar_processos(uid):
-        tela = TelaGerenciarProcessos(uid)
-        tela.show()
-        return tela
+        layout.addWidget(create_button("POP", "assets/icon_pop.png", tela_testes))
+        layout.addWidget(create_button("Processos", "assets/icon_pta.png", abrir_tela_gerenciar_processos))
+        layout.addStretch()
 
-    def create_button(text, icon=None, function=None, enabled=True):
-        def action():
-            usuario_window.hide()
-            nova_tela = function(usuario_id)
-            usuario_window.nova_tela = nova_tela
-        return HoverButton(text, icon_path=icon, function=action, enabled=enabled)
+        def confirmar_saida():
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Icon.Question)
+            msg.setWindowTitle("Confirmação")
+            msg.setText("Deseja realmente sair?")
+            msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            resultado = msg.exec()
+            if resultado == QMessageBox.StandardButton.Yes:
+                self.usuario_window.close()
 
-    button_layout.addWidget(create_button("POP", "assets/icon_pop.png", tela_testes, True))
-    button_layout.addWidget(create_button("Processos", "assets/icon_pta.png", abrir_tela_gerenciar_processos, True))
+        btn_sair = HoverButton("Sair", "assets/icon_sair.png", confirmar_saida)
+        layout.addWidget(btn_sair)
 
-    layout.addLayout(button_layout)
+        versao = QLabel("v1.0.0  © Capsnano")
+        versao.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        versao.setStyleSheet("font-size: 10px; color: gray;")
+        layout.addWidget(versao)
 
-    id_label = QLabel(f"ID: {usuario_id_formatado}")
-    id_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
-    id_label.setStyleSheet("font-size: 12px; color: white; margin-right: 10px; margin-bottom: 10px;")
-    layout.addWidget(id_label)
-
-    usuario_window.setLayout(layout)
-    usuario_window.show()
-    return usuario_window
+        self.setLayout(layout)
+        self.setFixedWidth(200)
+        self.setStyleSheet("background-color: #12151c;")
 
 def gerar_iniciais(nome_usuario):
     partes = nome_usuario.split()
@@ -134,3 +97,48 @@ def gerar_id_formatado(iniciais, usuario_id):
     numero = f"{usuario_id:03d}"
     return f"{iniciais}-{numero}"
 
+def tela_usuario(usuario_id):
+    usuario_window = QWidget()
+    usuario_window.setWindowTitle("Tela Inicial")
+    usuario_window.setFixedSize(1000, 600)
+    usuario_window.setStyleSheet("background-color: #1B1F27;")
+
+    main_layout = QHBoxLayout()
+    main_layout.setContentsMargins(0, 0, 0, 0)
+
+    sidebar = SideBar(usuario_window, usuario_id)
+    main_layout.addWidget(sidebar)
+
+    content_layout = QVBoxLayout()
+    content_layout.setSpacing(20)
+    content_layout.setContentsMargins(30, 30, 30, 20)
+
+    nome_usuario = buscar_nome_usuario(usuario_id)
+
+    titulo = QLabel(f"Bem-vindo, {nome_usuario}")
+    titulo.setStyleSheet("font-size: 24px; color: white; font-weight: bold;")
+    content_layout.addWidget(titulo)
+
+    subtitulo = QLabel("Sistema de Gestão de Conhecimento e Inovação")
+    subtitulo.setStyleSheet("font-size: 14px; color: #FFCD00;")
+    content_layout.addWidget(subtitulo)
+
+    if os.path.exists("assets/logo.png"):
+        logo = QLabel()
+        pixmap = QPixmap("assets/logo.png").scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio)
+        logo.setPixmap(pixmap)
+        logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        content_layout.addWidget(logo)
+
+    linha = QFrame()
+    linha.setFrameShape(QFrame.Shape.HLine)
+    linha.setFrameShadow(QFrame.Shadow.Sunken)
+    linha.setStyleSheet("color: white;")
+    content_layout.addWidget(linha)
+
+    content_layout.addStretch()
+
+    main_layout.addLayout(content_layout)
+    usuario_window.setLayout(main_layout)
+    usuario_window.show()
+    return usuario_window

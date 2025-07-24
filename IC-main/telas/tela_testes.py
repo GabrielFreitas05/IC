@@ -1,7 +1,7 @@
 import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QPushButton, QLabel,
-    QDateEdit, QScrollArea, QTextEdit, QFileDialog, QMessageBox, QHBoxLayout, QListWidget, QListWidgetItem, QLineEdit, QInputDialog
+    QDateEdit, QScrollArea, QTextEdit, QFileDialog, QMessageBox, QHBoxLayout, QListWidget, QListWidgetItem, QLineEdit
 )
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
@@ -148,7 +148,7 @@ def tela_testes(usuario_id):
     title_label = QLabel("Cadastro de POP (Procedimento Operacional Padrão)")
     title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     title_label.setFont(QFont("Arial", 22, QFont.Weight.Bold))
-    title_label.setStyleSheet(f"color: {fg_color};")
+    title_label.setStyleSheet(f"color: {fg_color}; margin-bottom: 20px;")
     layout.addWidget(title_label)
 
     scroll_area = QScrollArea()
@@ -228,8 +228,13 @@ def tela_testes(usuario_id):
 
     btn_add_anexo = HoverButton("Adicionar Anexo(s)", adicionar_anexo)
     btn_remove_anexo = HoverButton("Remover Anexo Selecionado", remover_anexo)
-    layout.addWidget(btn_add_anexo)
-    layout.addWidget(btn_remove_anexo)
+    
+    # Layout para os botões de ação
+    button_layout = QHBoxLayout()
+    button_layout.addWidget(btn_add_anexo)
+    button_layout.addWidget(btn_remove_anexo)
+
+    layout.addLayout(button_layout)
 
     def salvar():
         valores = {
@@ -300,8 +305,12 @@ def tela_testes(usuario_id):
                 legenda_edit.deleteLater()
             legenda_edits.clear()
 
-    layout.addWidget(HoverButton("Salvar POP", salvar))
-    layout.addWidget(HoverButton("Limpar Campos", limpar_campos))
-    layout.addWidget(HoverButton("Voltar", lambda: (testes_window.close(), __import__('telas.tela_usuario').tela_usuario.tela_usuario(usuario_id))))
+    # Layout para os botões de ação
+    action_button_layout = QHBoxLayout()
+    action_button_layout.addWidget(HoverButton("Salvar POP", salvar))
+    action_button_layout.addWidget(HoverButton("Limpar Campos", limpar_campos))
+    action_button_layout.addWidget(HoverButton("Voltar", lambda: (testes_window.close(), __import__('telas.tela_usuario').tela_usuario.tela_usuario(usuario_id))))
+
+    layout.addLayout(action_button_layout)
     testes_window.setLayout(layout)
     testes_window.show()
