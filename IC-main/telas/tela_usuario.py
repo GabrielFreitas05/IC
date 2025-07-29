@@ -6,6 +6,7 @@ from PyQt6.QtGui import QPixmap, QIcon, QFont
 from PyQt6.QtCore import Qt
 from telas.tela_testes import tela_testes
 from telas.tela_gerenciar_processos import TelaGerenciarProcessos
+from telas.tela_buscador_artigos import TelaBuscadorArtigos
 from db.db import buscar_nome_usuario
 import os
 
@@ -55,6 +56,11 @@ class SideBar(QWidget):
             tela.show()
             return tela
 
+        def abrir_tela_buscador_artigos(uid):
+            tela = TelaBuscadorArtigos(uid)
+            tela.show()
+            return tela
+
         def create_button(text, icon=None, function=None):
             def action():
                 self.usuario_window.hide()
@@ -64,6 +70,7 @@ class SideBar(QWidget):
 
         layout.addWidget(create_button("POP", "assets/icon_pop.png", tela_testes))
         layout.addWidget(create_button("Processos", "assets/icon_pta.png", abrir_tela_gerenciar_processos))
+        layout.addWidget(create_button("Buscar Artigos", "assets/icon_pta.png", abrir_tela_buscador_artigos))
         layout.addStretch()
 
         def confirmar_saida():
