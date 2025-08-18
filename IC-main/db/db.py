@@ -7,7 +7,6 @@ def conectar():
 def inicializar_banco():
     conexao = conectar()
     cursor = conexao.cursor()
-
     try:
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
@@ -18,7 +17,6 @@ def inicializar_banco():
             id_personalizada TEXT NOT NULL UNIQUE
         )
         ''')
-
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS pta (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,7 +26,6 @@ def inicializar_banco():
             FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
         )
         ''')
-
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS testes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,7 +52,6 @@ def inicializar_banco():
             FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
         )
         ''')
-
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS processos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,7 +60,11 @@ def inicializar_banco():
             padrao INTEGER DEFAULT 0
         )
         ''')
-
+        cursor.execute("PRAGMA table_info(processos)")
+        cols = [r[1] for r in cursor.fetchall()]
+        if "created_at" not in cols:
+            cursor.execute("ALTER TABLE processos ADD COLUMN created_at TEXT DEFAULT (CURRENT_TIMESTAMP)")
+        cursor.execute("UPDATE processos SET created_at = COALESCE(created_at, CURRENT_TIMESTAMP) WHERE created_at IS NULL")
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS etapas_processo (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,7 +76,6 @@ def inicializar_banco():
             FOREIGN KEY (processo_id) REFERENCES processos (id)
         )
         ''')
-
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS processo_execucao (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,7 +90,6 @@ def inicializar_banco():
             FOREIGN KEY (processo_id) REFERENCES processos (id)
         )
         ''')
-
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS formularios_processos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,7 +121,6 @@ def inicializar_banco():
             FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
         )
         ''')
-
         conexao.commit()
     except sqlite3.Error as e:
         print(f"Erro ao inicializar o banco de dados: {e}")
@@ -519,5 +516,32 @@ def salvar_formulario_processo(
     except sqlite3.Error as e:
         print(f"Erro ao salvar formulário: {e}")
         return False
+    finally:
+        conexao.close()
+
+def salvar_processo(nome, descricao=None, padrao=0):
+    conexao = conectar()
+    cursor = conexao.cursor()
+    try:
+        cursor.execute("INSERT INTO processos (nome, descricao, padrao, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", (nome, descricao, padrao))
+        conexao.commit()
+        return cursor.lastrowid
+    except sqlite3.Error as e:
+        print(f"Erro ao salvar processo: {e}")
+        return None
+    finally:
+        conexao.close()
+
+def listar_processos():
+    conexao = conectar()
+    cursor = conexao.cursor()
+    try:
+        cursor.execute("UPDATE processos SET created_at = COALESCE(created_at, CURRENT_TIMESTAMP) WHERE created_at IS NULL")
+        conexao.commit()
+        cursor.execute("SELECT id, nome, descricao, padrao, created_at FROM processos ORDER BY id DESC")
+        return cursor.fetchall()
+    except sqlite3.Error as e:
+        print(f"Erro ao listar processos: {e}")
+        return []
     finally:
         conexao.close()

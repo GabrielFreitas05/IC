@@ -90,7 +90,7 @@ class TelaProcessos(QWidget):
         layout = QVBoxLayout(self.page_identificacao)
         self.inp_nome_processo = QTextEdit()
         self.inp_responsavel = QTextEdit()
-        self.inp_data_inicio = QTextEdit()
+
         layout.addWidget(QLabel("Nome do Processo*"))
         layout.addWidget(self.inp_nome_processo)
         layout.addWidget(QLabel("Responsável*"))
