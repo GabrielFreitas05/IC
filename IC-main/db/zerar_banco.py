@@ -1,7 +1,8 @@
 import sqlite3
 
 def zerar_banco():
-    conexao = sqlite3.connect('usuarios.db')
+    conexao = get_connection(
+('usuarios.db')
     cursor = conexao.cursor()
 
 

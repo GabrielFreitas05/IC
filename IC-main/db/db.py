@@ -1,8 +1,17 @@
 import sqlite3
 from fpdf import FPDF
+from db.connection import get_connection
+
 
 def conectar():
-    return sqlite3.connect('usuarios.db')
+    return get_connection('usuarios.db')
+
+import sqlite3
+from fpdf import FPDF
+from db.connection import get_connection
+
+def conectar():
+    return get_connection('usuarios.db')
 
 def inicializar_banco():
     conexao = conectar()
@@ -14,117 +23,86 @@ def inicializar_banco():
             email TEXT NOT NULL UNIQUE,
             nome TEXT NOT NULL,
             senha TEXT NOT NULL,
-            id_personalizada TEXT NOT NULL UNIQUE
+            id_personalizada TEXT,
+            role TEXT NOT NULL DEFAULT 'user',
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
         ''')
+
         cursor.execute('''
-        CREATE TABLE IF NOT EXISTS pta (
+        CREATE TABLE IF NOT EXISTS registration_requests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER,
-            data TEXT,
-            descricao TEXT,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
-        )
-        ''')
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS testes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER,
-            titulo_procedimento TEXT,
-            codigo_documento TEXT,
-            versao TEXT,
-            data_emissao TEXT,
-            objetivo TEXT,
-            aplicacao_escopo TEXT,
-            responsabilidades TEXT,
-            materiais_equipamentos TEXT,
-            procedimento_operacional TEXT,
-            preparacao TEXT,
-            operacao TEXT,
-            finalizacao TEXT,
-            segurancas_riscos TEXT,
-            controle_qualidade TEXT,
-            manutencao_calibracao TEXT,
-            referencias TEXT,
-            anexos TEXT,
-            historico_revisoes TEXT,
-            responsavel TEXT,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
-        )
-        ''')
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS processos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL UNIQUE,
             nome TEXT NOT NULL,
-            descricao TEXT,
-            padrao INTEGER DEFAULT 0
+            senha TEXT NOT NULL,
+            id_personalizada TEXT,
+            requested_role TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
         ''')
-        cursor.execute("PRAGMA table_info(processos)")
-        cols = [r[1] for r in cursor.fetchall()]
-        if "created_at" not in cols:
-            cursor.execute("ALTER TABLE processos ADD COLUMN created_at TEXT DEFAULT (CURRENT_TIMESTAMP)")
-        cursor.execute("UPDATE processos SET created_at = COALESCE(created_at, CURRENT_TIMESTAMP) WHERE created_at IS NULL")
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS etapas_processo (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            processo_id INTEGER,
-            ordem INTEGER NOT NULL,
-            titulo TEXT NOT NULL,
-            instrucoes TEXT,
-            validacao TEXT,
-            FOREIGN KEY (processo_id) REFERENCES processos (id)
-        )
-        ''')
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS processo_execucao (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER,
-            processo_id INTEGER,
-            etapa_atual INTEGER,
-            data_inicio TEXT,
-            data_final TEXT,
-            status TEXT,
-            dados TEXT,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios (id),
-            FOREIGN KEY (processo_id) REFERENCES processos (id)
-        )
-        ''')
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS formularios_processos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER,
-            nome_processo TEXT,
-            responsavel TEXT,
-            data_inicio TEXT,
-            nome_fase TEXT,
-            ordem_fase TEXT,
-            objetivo_fase TEXT,
-            nome_passo TEXT,
-            ordem_passo TEXT,
-            descricao_passo TEXT,
-            ferramentas TEXT,
-            tempo_estimado TEXT,
-            riscos TEXT,
-            entradas TEXT,
-            saidas TEXT,
-            depende TEXT,
-            depende_qual TEXT,
-            decisao TEXT,
-            fluxo_decisao TEXT,
-            tempo_real TEXT,
-            qualidade TEXT,
-            licoes TEXT,
-            melhorias TEXT,
-            status TEXT DEFAULT 'rascunho',
-            data_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
-        )
-        ''')
+
+        cols = [r[1] for r in cursor.execute("PRAGMA table_info(usuarios)").fetchall()]
+        if "id_personalizada" not in cols:
+            cursor.execute("ALTER TABLE usuarios ADD COLUMN id_personalizada TEXT")
+        if "role" not in cols:
+            cursor.execute("ALTER TABLE usuarios ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
+        if "is_active" not in cols:
+            cursor.execute("ALTER TABLE usuarios ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1")
         conexao.commit()
-    except sqlite3.Error as e:
-        print(f"Erro ao inicializar o banco de dados: {e}")
     finally:
+        conexao.close()
+
+
+def criar_pedido_cadastro(email, nome, senha_hash, id_personalizada, requested_role):
+    conexao = conectar()
+    cursor = conexao.cursor()
+    try:
+        cursor.execute("INSERT INTO registration_requests (email, nome, senha, id_personalizada, requested_role) VALUES (?, ?, ?, ?, ?)", (email, nome, senha_hash, id_personalizada, requested_role))
+        conexao.commit()
+        return cursor.lastrowid
+    finally:
+        conexao.close()
+
+def listar_pedidos_pendentes():
+    conexao = conectar()
+    cursor = conexao.cursor()
+    try:
+        cursor.execute("SELECT id, email, nome, id_personalizada, requested_role, created_at FROM registration_requests WHERE status='pending' ORDER BY created_at ASC")
+        return cursor.fetchall()
+    finally:
+        conexao.close()
+
+def aprovar_pedido(pedido_id, role_final=None, email_override=None, nome_override=None, idp_override=None):
+    conexao = conectar()
+    cursor = conexao.cursor()
+    try:
+        row = cursor.execute("SELECT email, nome, senha, id_personalizada, requested_role FROM registration_requests WHERE id=? AND status='pending'", (pedido_id,)).fetchone()
+        if not row:
+            return False
+        email = email_override or row["email"]
+        nome = nome_override or row["nome"]
+        senha = row["senha"]
+        idp = idp_override or row["id_personalizada"]
+        role = role_final or row["requested_role"]
+        cursor.execute("INSERT INTO usuarios (email, nome, senha, id_personalizada, role, is_active) VALUES (?, ?, ?, ?, ?, 1)", (email, nome, senha, idp, role))
+        cursor.execute("UPDATE registration_requests SET status='approved' WHERE id=?", (pedido_id,))
+        conexao.commit()
+        return True
+    finally:
+        conexao.close()
+
+def rejeitar_pedido(pedido_id):
+    conexao = conectar()
+    cursor = conexao.cursor()
+    try:
+        cursor.execute("UPDATE registration_requests SET status='rejected' WHERE id=? AND status='pending'", (pedido_id,))
+        conexao.commit()
+        return cursor.rowcount > 0
+    finally:
+        conexao.close()
+
         conexao.close()
 
 def gerar_id_usuario(nome_usuario):

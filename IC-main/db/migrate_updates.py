@@ -1,7 +1,8 @@
 import sqlite3, os
 
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'usuarios.db')
-conn = sqlite3.connect(DB_PATH)
+conn = get_connection(
+(DB_PATH)
 cur = conn.cursor()
 cur.execute("PRAGMA foreign_keys=ON")
 cur.execute("""

@@ -1,5 +1,5 @@
 import bcrypt
-import sqlite3
+from db.connection import get_connection
 from tkinter import messagebox
 
 def gerar_hash_senha(password):
@@ -11,7 +11,7 @@ def verificar_senha(stored_password, provided_password):
     return bcrypt.checkpw(provided_password.encode('utf-8'), stored_password)
 
 def registrar_usuario(email, password):
-    conexao = sqlite3.connect('usuarios.db')
+    conexao = get_connection('usuarios.db')
     cursor = conexao.cursor()
     cursor.execute('SELECT * FROM usuarios WHERE email = ?', (email,))
     
@@ -27,7 +27,7 @@ def registrar_usuario(email, password):
     return True  
 
 def login_usuario(email, password):
-    conexao = sqlite3.connect('usuarios.db')
+    conexao = get_connection('usuarios.db')
     cursor = conexao.cursor()
     cursor.execute('SELECT * FROM usuarios WHERE email = ?', (email,))
     user = cursor.fetchone()

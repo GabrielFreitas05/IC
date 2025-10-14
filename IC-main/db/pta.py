@@ -1,7 +1,8 @@
 import sqlite3
 
 def salvar_pta(usuario_id, data, descricao):
-    conexao = sqlite3.connect('usuarios.db')
+    conexao = get_connection(
+('usuarios.db')
     cursor = conexao.cursor()
 
     try:
@@ -17,7 +18,8 @@ def salvar_pta(usuario_id, data, descricao):
         conexao.close()
 
 def inicializar_tabela_pta():
-    conexao = sqlite3.connect('usuarios.db')
+    conexao = get_connection(
+('usuarios.db')
     cursor = conexao.cursor()
     
     try:

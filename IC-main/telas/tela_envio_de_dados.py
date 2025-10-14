@@ -27,7 +27,8 @@ class TelaPesquisa(QWidget):
 
     def buscar(self):
         termo = self.search_input.text()
-        conn = sqlite3.connect("db/usuarios.db")
+        conn = get_connection(
+("db/usuarios.db")
         cursor = conn.cursor()
         self.result_list.clear()
         try:

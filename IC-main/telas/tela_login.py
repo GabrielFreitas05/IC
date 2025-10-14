@@ -6,6 +6,7 @@ from PyQt6.QtGui import QFont, QPixmap
 from telas.tela_usuario import tela_usuario
 from telas.tela_registro import tela_registro
 from telas.tela_admin import TelaAdmin
+from db.connection import get_connection
 
 ADMIN_EMAIL = "admin@admin.com"
 ADMIN_PASSWORD_HASH = bcrypt.hashpw("admin123".encode(), bcrypt.gensalt()).decode()
@@ -16,7 +17,7 @@ def tela_login():
     login_window.setFixedSize(420, 520)
     login_window.setStyleSheet("""
         QWidget {
-            background-color: #1A2A47;
+            background-color: #0f172a;
             font-family: 'Segoe UI', sans-serif;
             color: white;
         }
@@ -88,24 +89,27 @@ def tela_login():
     layout.addLayout(register_row)
 
     def autenticar_usuario():
-        email = email_input.text()
-        senha = password_input.text()
+        email = email_input.text().strip()
+        senha = password_input.text().strip()
 
         if not email or not senha:
             QMessageBox.warning(login_window, "Erro", "Preencha todos os campos.")
             return
 
-        if email == ADMIN_EMAIL and bcrypt.checkpw(senha.encode(), ADMIN_PASSWORD_HASH.encode()):
-            QMessageBox.information(login_window, "Sucesso", "Login do Administrador realizado com sucesso!")
-            admin_window = TelaAdmin()
-            admin_window.show()
-            login_window.close()
-            admin_window.exec()
-            return
+        if email == ADMIN_EMAIL:
+            if bcrypt.checkpw(senha.encode(), ADMIN_PASSWORD_HASH.encode()):
+                QMessageBox.information(login_window, "Sucesso", "Login do Administrador realizado com sucesso!")
+                admin = TelaAdmin()
+                admin.exec()
+                login_window.close()
+                return
+            else:
+                QMessageBox.warning(login_window, "Erro", "Senha do administrador incorreta.")
+                return
 
-        conn = sqlite3.connect("usuarios.db")
+        conn = get_connection("usuarios.db")
         cursor = conn.cursor()
-        cursor.execute("SELECT rowid, senha FROM usuarios WHERE email = ?", (email,))
+        cursor.execute("SELECT rowid, senha, is_active FROM usuarios WHERE email = ?", (email,))
         resultado = cursor.fetchone()
         conn.close()
 
@@ -113,9 +117,18 @@ def tela_login():
             QMessageBox.warning(login_window, "Erro", "Usuário não encontrado.")
             return
 
-        usuario_id, senha_hash = resultado
+        usuario_id, senha_hash, is_active = resultado
 
-        if bcrypt.checkpw(senha.encode(), senha_hash):
+        if is_active != 1:
+            QMessageBox.warning(login_window, "Erro", "Usuário ainda não aprovado pelo administrador.")
+            return
+
+        if isinstance(senha_hash, str):
+            senha_hash_bytes = senha_hash.encode()
+        else:
+            senha_hash_bytes = senha_hash
+
+        if bcrypt.checkpw(senha.encode(), senha_hash_bytes):
             QMessageBox.information(login_window, "Sucesso", "Login realizado com sucesso!")
             login_window.close()
             tela_usuario(usuario_id)

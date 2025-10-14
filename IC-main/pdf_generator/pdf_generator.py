@@ -29,7 +29,8 @@ def gerar_pdf(usuario_id, descricao, resultado, equipamentos, om_responsavel, au
     messagebox.showinfo("Sucesso", f"Relatório salvo em: {file_path}")
 
 def salvar_teste(usuario_id, descricao, resultado, equipamentos, om_responsavel, autor, titulo, data_inicio, data_fim):
-    conexao = sqlite3.connect('usuarios.db')
+    conexao = get_connection(
+('usuarios.db')
     cursor = conexao.cursor()
     try:
         cursor.execute('''

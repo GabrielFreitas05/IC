@@ -1,7 +1,8 @@
-import sqlite3
+from db.connection import get_connection
+
 
 def mostrar_dados():
-    conexao = sqlite3.connect('usuarios.db')
+    conexao = get_connection('usuarios.db')
     cursor = conexao.cursor()
     
     cursor.execute("SELECT * FROM testes")
