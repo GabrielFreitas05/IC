@@ -1,10 +1,41 @@
 import sqlite3
 import bcrypt
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QComboBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QComboBox, QDialog
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from db.db import criar_pedido_cadastro
 from utils.emailer import send_email
+
+class AguardandoDialog(QDialog):
+    def __init__(self, email, parent=None):
+        super().__init__(parent)
+        self.email = email
+        self.setWindowTitle("Aguardando aprovação")
+        self.setFixedSize(420, 220)
+        self.setStyleSheet("""
+            QDialog { background-color: #1A2A47; color: white; font-family: 'Segoe UI', sans-serif; }
+            QPushButton { background-color: #FFCD00; color: #1B3A5E; font-weight: bold; border: none; padding: 10px; border-radius: 6px; }
+            QPushButton:hover { background-color: #e6b800; }
+            QLabel { color: white; }
+        """)
+        layout = QVBoxLayout(self)
+        lbl = QLabel(f"Seu cadastro {email} aguarda aprovação do administrador.")
+        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(lbl)
+        btn_login = QPushButton("Voltar ao login")
+        btn_sair = QPushButton("Sair")
+        layout.addWidget(btn_login)
+        layout.addWidget(btn_sair)
+        btn_login.clicked.connect(self.voltar_login)
+        btn_sair.clicked.connect(self.close)
+
+    def voltar_login(self):
+        try:
+            from telas.tela_login import tela_login
+            self.close()
+            tela_login()
+        except Exception:
+            self.close()
 
 def tela_registro():
     registro_window = QWidget()
@@ -79,7 +110,18 @@ def tela_registro():
             QMessageBox.warning(registro_window, "Aviso", "Pedido salvo, mas o e-mail ao administrador falhou.")
         else:
             QMessageBox.information(registro_window, "Enviado", "Seu pedido foi enviado para aprovação do administrador.")
-        registro_window.close()
+        try:
+            registro_window.hide()
+            registro_window._aguardo = AguardandoDialog(email, parent=registro_window)
+            registro_window._aguardo.show()
+        except Exception as e:
+            QMessageBox.information(registro_window, "Informação", "Cadastro enviado. Retornando ao login.")
+            try:
+                from telas.tela_login import tela_login
+                registro_window.hide()
+                tela_login()
+            except Exception:
+                pass
 
     btn_registrar.clicked.connect(enviar)
     registro_window.setLayout(layout)

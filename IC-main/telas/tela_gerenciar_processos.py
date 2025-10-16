@@ -1,4 +1,3 @@
-
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QTableWidget, QTableWidgetItem, QMessageBox, QHeaderView, 
@@ -8,7 +7,9 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 from db.db import conectar
 from telas.tela_processos import TelaProcessos
+from telas.tela_detalhes_processo import TelaDetalhesProcessos
 from fpdf import FPDF
+
 
 class TelaGerenciarProcessos(QWidget):
     def __init__(self, usuario_id):
@@ -95,10 +96,10 @@ class TelaGerenciarProcessos(QWidget):
         self.btn_atualizar.clicked.connect(self._atualizar_processos)
         button_layout.addWidget(self.btn_atualizar)
 
-        self.btn_gerar_relatorio = QPushButton("📄 Gerar Relatório")
-        self.btn_gerar_relatorio.clicked.connect(self._gerar_relatorio_processo)
-        self.btn_gerar_relatorio.setEnabled(False)
-        button_layout.addWidget(self.btn_gerar_relatorio)
+        self.btn_detalhes = QPushButton("🔎 Detalhes")
+        self.btn_detalhes.clicked.connect(self._abrir_detalhes_processo)
+        self.btn_detalhes.setEnabled(False)
+        button_layout.addWidget(self.btn_detalhes)
 
         main_layout.addLayout(button_layout)
 
@@ -156,7 +157,7 @@ class TelaGerenciarProcessos(QWidget):
         selected = len(self.tabela_processos.selectedItems()) > 0
         self.btn_editar.setEnabled(selected)
         self.btn_excluir.setEnabled(selected)
-        self.btn_gerar_relatorio.setEnabled(selected)
+        self.btn_detalhes.setEnabled(selected)  # habilita Detalhes quando há seleção
 
     def _abrir_tela_criar_processo(self):
         self.tela_processos = TelaProcessos(self.usuario_id)
@@ -232,95 +233,17 @@ class TelaGerenciarProcessos(QWidget):
         self.close()
         tela_usuario(self.usuario_id)
 
-    def _gerar_relatorio_processo(self):
+    def _abrir_detalhes_processo(self):
         selected_items = self.tabela_processos.selectedItems()
         if not selected_items:
-            QMessageBox.warning(self, "Aviso", "Selecione um processo para gerar o relatório.")
+            QMessageBox.warning(self, "Aviso", "Selecione um processo para ver os detalhes.")
             return
-
         try:
             selected_row = selected_items[0].row()
             processo_id = int(self.tabela_processos.item(selected_row, 0).text())
-
-            conn = conectar()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM formularios_processos WHERE id = ?", (processo_id,))
-            processo_detalhes = cursor.fetchone()
-            conn.close()
-
-            if processo_detalhes:
-                column_names = [
-                    "",
-                    "",
-                    "Nome do Processo",
-                    "Responsável",
-                    "Data de Início",
-                    "Nome da Fase",
-                    "Ordem da Fase",
-                    "Objetivo da Fase",
-                    "Nome do Passo",
-                    "Ordem do Passo",
-                    "Descrição do Passo",
-                    "Ferramentas",
-                    "Tempo Estimado",
-                    "Riscos",
-                    "Entradas",
-                    "Saídas",
-                    "Depende",
-                    "Depende Qual",
-                    "Decisão",
-                    "Fluxo de Decisão",
-                    "Tempo Real",
-                    "Qualidade",
-                    "Lições Aprendidas",
-                    "Melhorias Sugeridas",
-                    "",
-                    "Data de Registro"
-                ]
-
-                pdf = FPDF()
-                pdf.add_page()
-                pdf.set_font("Arial", 'B', size=16)
-                
-                pdf.cell(0, 10, txt="Relatório de Processo", ln=True, align='C')
-                pdf.set_font("Arial", size=12)
-                pdf.ln(10)
-                
-                pdf.set_font("Arial", 'B', size=14)
-                pdf.cell(0, 10, txt=f"Processo: {processo_detalhes[2]}", ln=True)
-                pdf.set_font("Arial", size=12)
-                
-                pdf.cell(0, 10, txt=f"Responsável: {processo_detalhes[3]}", ln=True)
-                pdf.cell(0, 10, txt=f"Data de Início: {processo_detalhes[4]}", ln=True)
-                pdf.ln(10)
-
-                pdf.set_font("Arial", 'B', size=12)
-                pdf.cell(0, 10, txt="Detalhes do Processo:", ln=True)
-                pdf.set_font("Arial", size=12)
-                pdf.ln(5)
-
-                for i, (detail, name) in enumerate(zip(processo_detalhes, column_names)):
-                    if i in [0, 1, 24]:
-                        continue
-                        
-                    if name and detail:
-                        pdf.set_font("Arial", 'B', size=12)
-                        pdf.cell(40, 10, txt=f"{name}: ", ln=0)
-                        pdf.set_font("Arial", size=12)
-                        pdf.multi_cell(0, 10, txt=str(detail))
-                        pdf.ln(2)
-                
-                file_name = f"Relatorio_Processo_{processo_detalhes[2].replace(' ', '_')}.pdf"
-                file_path, _ = QFileDialog.getSaveFileName(self, "Salvar Relatório", file_name, "PDF Files (*.pdf)")
-
-                if file_path:
-                    pdf.output(file_path)
-                    QMessageBox.information(self, "Sucesso", f"Relatório gerado com sucesso em:\n{file_path}")
-                else:
-                    QMessageBox.information(self, "Cancelado", "Geração do relatório cancelada.")
-
-            else:
-                QMessageBox.warning(self, "Erro", "Detalhes do processo não encontrados para gerar o relatório.")
-
+            dlg = TelaDetalhesProcessos(process_id=processo_id, parent=self)
+            dlg.exec()
+            # Se as alterações no detalhe refletirem em campos desta lista, recarregue
+            self._carregar_processos()
         except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Falha ao gerar relatório:\n{str(e)}")
+            QMessageBox.critical(self, "Erro", f"Falha ao abrir detalhes:\n{str(e)}")
