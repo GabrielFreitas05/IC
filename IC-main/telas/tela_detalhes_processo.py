@@ -15,6 +15,7 @@ from db.db import (
     conectar,
 )
 
+
 # -------------------- Formulário de atividade --------------------
 class ActivityForm(QDialog):
     def __init__(self, parent=None, entry_date=None, title="", note=""):
@@ -253,9 +254,8 @@ class TelaDetalhesProcessos(QDialog):
             except Exception:
                 data_inicio_formatada = data_inicio or "-"
 
-            # data registro dd/mm/yyyy HH:MM:SS
             try:
-                data_registro_formatada = datetime.strptime(data_registro, "%Y-%m-%d %H:%M:%S").strftime("%d/%m/%Y %H:%M:%S") if data_registro else "-"
+                data_registro_formatada = datetime.strptime(data_registro, "%Y-%m-%d").strftime("%d/%m/%Y") if data_registro else "-"
             except Exception:
                 data_registro_formatada = data_registro or "-"
 
@@ -326,7 +326,7 @@ class TelaDetalhesProcessos(QDialog):
             except Exception:
                 a_date_fmt = a_date or "-"
             try:
-                a_created_fmt = datetime.strptime(a_created, "%Y-%m-%d %H:%M:%S").strftime("%d/%m/%Y %H:%M:%S") if a_created else "-"
+                a_created_fmt = datetime.strptime(a_created, "%Y-%m-%d").strftime("%d/%m/%Y") if a_created else "-"
             except Exception:
                 a_created_fmt = a_created or "-"
 
@@ -421,7 +421,7 @@ class TelaDetalhesProcessos(QDialog):
         except Exception:
             data_inicio_formatada = data_inicio or "-"
         try:
-            data_registro_formatada = datetime.strptime(data_registro, "%Y-%m-%d %H:%M:%S").strftime("%d/%m/%Y %H:%M:%S") if data_registro else "-"
+            data_registro_formatada = datetime.strptime(data_registro, "%Y-%m-%d").strftime("%d/%m/%Y") if data_registro else "-"
         except Exception:
             data_registro_formatada = data_registro or "-"
 
